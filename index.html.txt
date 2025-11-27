@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gastos Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e40af">
+    <style>
+        :root {
+            --primary: #1e40af;
+            --secondary: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: var(--primary); color: white; padding: 20px; text-align: center; }
+        .summary { background: var(--warning); padding: 20px; text-align: center; }
+        .summary h2 { font-size: 2em; margin-bottom: 5px; }
+        .date-filters { background: #f8fafc; padding: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .date-picker { flex: 1; min-width: 140px; }
+        .btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .btn-danger { background: var(--danger); }
+        .btn-success { background: var(--success); }
+        .list { max-height: 400px; overflow-y: auto; }
+        .expense-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid #e5e7eb; }
+        .expense-info { flex: 1; }
+        .expense-category { font-weight: 600; color: var(--primary); }
+        .expense-desc { color: #6b7280; font-size: 0.9em; }
+        .expense-amount { font-size: 1.2em; font-weight: 700; color: var(--danger); }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #374151; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 16px; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+        @media (max-width: 480px) { .date-filters { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Gastos Tracker</h1>
+        </div>
+        
+        <div class="summary">
+            <div>Período: <span id="period-display">Últimos 30 dias</span></div>
+            <h2 id="total-amount">R$ 0,00</h2>
+            <div id="transaction-count">0 transações</div>
+        </div>
+        
+        <div class="date-filters">
+            <input type="date" id="start-date" class="date-picker">
+            <input type="date" id="end-date" class="date-picker">
+            <button class="btn" onclick="filterExpenses()">Filtrar</button>
+            <button class="btn btn-success" onclick="exportData()">Exportar</button>
+        </div>
+        
+        <div class="list" id="expenses-list">
+            <div style="padding: 40px; text-align: center; color: #6b7280;">Nenhuma despesa encontrada<br>Adicione a primeira despesa!</div>
+        </div>
+        
+        <div style="padding: 20px; text-align: center;">
+            <button class="btn" onclick="showAddModal()">➕ Adicionar Despesa</button>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar -->
+    <div id="add-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>📝 Nova Despesa</h2>
+            <div class="form-group">
+                <label>Data</label>
+                <input type="date" id="expense-date" required>
+            </div>
+            <div class="form-group">
+                <label>Categoria</label>
+                <select id="expense-category" required>
+                    <option value="Alimentação">🍔 Alimentação</option>
+                    <option value="Transporte">🚗 Transporte</option>
+                    <option value="Moradia">🏠 Moradia</option>
+                    <option value="Lazer">🎮 Lazer</option>
+                    <option value="Saúde">🏥 Saúde</option>
+                    <option value="Outros">📦 Outros</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Descrição</label>
+                <input type="text" id="expense-desc" placeholder="O que você comprou?" required>
+            </div>
+            <div class="form-group">
+                <label>Valor (R$)</label>
+                <input type="number" id="expense-amount" step="0.01" placeholder="0,00" required>
+            </div>
+            <div class="form-group">
+                <label>Método de Pagamento</label>
+                <select id="expense-payment" required>
+                    <option value="PIX">💳 PIX</option>
+                    <option value="Débito">💳 Débito</option>
+                    <option value="Crédito">💳 Crédito</option>
+                    <option value="Dinheiro">💵 Dinheiro</option>
+                    <option value="Boleto">📄 Boleto</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" style="flex: 1;" onclick="hideAddModal()">Cancelar</button>
+                <button class="btn btn-success" style="flex: 1;" onclick="saveExpense()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        let startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+        let endDate = new Date();
+
+        const categories = ['Alimentação', 'Transporte', 'Moradia', 'Lazer', 'Saúde', 'Outros'];
+        const paymentMethods = ['PIX', 'Débito', 'Crédito', 'Dinheiro', 'Boleto'];
+
+        function saveExpenses() {
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+        }
+
+        function renderExpenses(filteredExpenses) {
+            const list = document.getElementById('expenses-list');
+            const totalEl = document.getElementById('total-amount');
+            const countEl = document.getElementById('transaction-count');
+            
+            if (filteredExpenses.length === 0) {
+                list.innerHTML = '<div style="padding: 40px; text-align: center; color: #6b7280;">Nenhuma despesa encontrada<br>Use os filtros ou adicione uma nova despesa!</div>';
+            } else {
+                list.innerHTML = filteredExpenses.map(exp => `
+                    <div class="expense-item">
+                        <div class="expense-info">
+                            <div class="expense-category">${exp.category}</div>
+                            <div class="expense-desc">${exp.description}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="expense-amount">R$ ${exp.amount.toFixed(2).replace('.', ',')}</div>
+                            <div style="font-size: 0.8em; color: #6b7280;">${exp.paymentMethod}</div>
+                            <div style="font-size: 0.7em; color: #9ca3af;">${new Date(exp.date).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            const total = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            totalEl.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+            countEl.textContent = `${filteredExpenses.length} transação${filteredExpenses.length !== 1 ? 'ões' : ''}`;
+        }
+
+        function filterExpenses() {
+            startDate = new Date(document.getElementById('start-date').value || startDate.toISOString().split('T')[0]);
+            endDate = new Date(document.getElementById('end-date').value || endDate.toISOString().split('T')[0]);
+            
+            const filtered = expenses.filter(exp => {
+                const expDate = new Date(exp.date);
+                return expDate >= startDate && expDate <= endDate;
+            });
+            
+            document.getElementById('period-display').textContent = 
+                `${startDate.toLocaleDateString('pt-BR')} - ${endDate.toLocaleDateString('pt-BR')}`;
+            
+            renderExpenses(filtered);
+        }
+
+        function showAddModal() {
+            document.getElementById('add-modal').style.display = 'flex';
+            document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+        }
+
+        function hideAddModal() {
+            document.getElementById('add-modal').style.display = 'none';
+        }
+
+        function saveExpense() {
+            const expense = {
+                id: Date.now(),
+                date: document.getElementById('expense-date').value,
+                category: document.getElementById('expense-category').value,
+                description: document.getElementById('expense-desc').value,
+                amount: parseFloat(document.getElementById('expense-amount').value),
+                paymentMethod: document.getElementById('expense-payment').value
+            };
+            
+            expenses.unshift(expense);
+            saveExpenses();
+            filterExpenses();
+            hideAddModal();
+        }
+
+        function exportData() {
+            const filtered = expenses.filter(exp => {
+                const expDate = new Date(exp.date);
+                return expDate >= startDate && expDate <= endDate;
+            });
+            
+            const csv = 'Data,Categoria,Descrição,Valor,Método\n' + 
+                filtered.map(exp => 
+                    `"${new Date(exp.date).toLocaleDateString('pt-BR')}",` +
+                    `"${exp.category}","${exp.description}",${exp.amount},"${exp.paymentMethod}"`
+                ).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gastos_${startDate.toISOString().split('T')[0]}_a_${endDate.toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
+            document.getElementById('end-date').value = today;
+            
+            filterExpenses();
+        });
+
+        // Service Worker para PWA offline
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
