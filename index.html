@@ -9,19 +9,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e40af">
     <style>
-       :root {
-    --primary: #065f46;
-    --secondary: #10b981;
-    --danger: #f97316;
-    --success: #22c55e;
-    --warning: #facc15;
-}
-body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: radial-gradient(circle at top, #111827 0%, #020617 60%, #000000 100%);
-    min-height: 100vh;
-    padding: 20px;
-}
+        :root {
+            --primary: #1e40af;
+            --secondary: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
         .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
         .header { background: var(--primary); color: white; padding: 20px; text-align: center; }
@@ -47,13 +47,81 @@ body {
         .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
         .tabs button { border:none; padding:12px; font-weight:600; cursor:pointer; }
         @media (max-width: 480px) { .date-filters { flex-direction: column; } }
+
+        /* Splash (tela inicial) */
+        #splash {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at top, #1e293b 0%, #020617 60%, #000 100%);
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #splash-inner {
+            max-width: 320px;
+            text-align: center;
+            padding: 32px 24px;
+            border-radius: 24px;
+            background: rgba(15,23,42,0.96);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+        #splash-title {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+        }
+        #splash-subtitle {
+            font-size: 0.95rem;
+            color: #9ca3af;
+            margin-bottom: 18px;
+        }
+        #splash-badge {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: #a5b4fc;
+            margin-bottom: 12px;
+        }
+        #splash-button {
+            margin-top: 16px;
+            width: 100%;
+            border-radius: 999px;
+            background: #22c55e;
+        }
+        #splash-hint {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+        .hidden-splash {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .4s ease-out;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container">
+    <!-- Tela inicial (splash) -->
+    <div id="splash">
+        <div id="splash-inner">
+            <div id="splash-badge">Controle financeiro</div>
+            <div id="splash-title">Bem-vindo ao Gastos Tracker</div>
+            <div id="splash-subtitle">
+                Acompanhe salário, parcelas e gastos por categoria em um só lugar.
+            </div>
+            <button class="btn" id="splash-button" onclick="enterApp()">Começar</button>
+            <div id="splash-hint">
+                Dica: adicione este app à tela inicial para usar como aplicativo.
+            </div>
+        </div>
+    </div>
+
+    <!-- App principal -->
+    <div class="container" id="app-root" style="display:block;">
         <div class="header">
-            <h1>💰 Gastos Tracker V3</h1>
+            <h1>💰 Gastos Tracker</h1>
         </div>
 
         <div class="summary">
@@ -487,6 +555,14 @@ body {
             a.click();
         }
 
+        function enterApp() {
+            const splash = document.getElementById('splash');
+            splash.classList.add('hidden-splash');
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 400);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
@@ -503,4 +579,3 @@ body {
     </script>
 </body>
 </html>
-
