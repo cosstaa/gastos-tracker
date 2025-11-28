@@ -561,7 +561,8 @@
 
             const total = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
             totalEl.textContent = brlFormatter.format(total);
-            countEl.textContent = `${filteredExpenses.length} transação${filteredExpenses.length !== 1 ? 'ões' : ''}`;
+           countEl.textContent = `${filteredExpenses.length} transações`;
+
 
             const salaryInfoEl = document.getElementById('salary-info');
             const balanceInfoEl = document.getElementById('balance-info');
@@ -831,3 +832,4 @@
     </script>
 </body>
 </html>
+
